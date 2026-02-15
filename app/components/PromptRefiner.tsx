@@ -146,7 +146,7 @@ const Shell = ({
   exiting: boolean;
 }) => (
   <div style={s.page as CSSProperties}>
-    <style>{CSS}</style>
+    <style dangerouslySetInnerHTML={{ __html: CSS }} />
     <ParticleCanvas />
     <div
       style={
