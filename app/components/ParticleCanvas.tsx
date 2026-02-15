@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export const ParticleCanvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,6 +113,89 @@ export const ParticleCanvas = () => {
         zIndex: 0,
       }}
     />
+  );
+};
+
+export const InteractiveTitle = () => {
+  const text = "プロンプトの限界を、超えろ。";
+  const [chars, setChars] = useState(
+    text.split("").map((c) => ({ c, lit: false }))
+  );
+  const onHover = (idx: number) => {
+    setChars((prev) =>
+      prev.map((ch, i) => ({ ...ch, lit: Math.abs(i - idx) <= 2 }))
+    );
+  };
+  const onLeave = () =>
+    setChars((prev) => prev.map((ch) => ({ ...ch, lit: false })));
+  const onClick = (idx: number) => {
+    for (let d = 0; d <= text.length; d++) {
+      setTimeout(() => {
+        setChars((prev) =>
+          prev.map((ch, i) => ({
+            ...ch,
+            lit:
+              Math.abs(i - idx) <= d && Math.abs(i - idx) >= d - 1,
+          }))
+        );
+      }, d * 50);
+    }
+    setTimeout(
+      () => setChars((prev) => prev.map((ch) => ({ ...ch, lit: false }))),
+      text.length * 50 + 300
+    );
+  };
+  return (
+    <div
+      style={{
+        margin: "16px auto 48px",
+        textAlign: "center",
+        userSelect: "none",
+        cursor: "pointer",
+      }}
+      onMouseLeave={onLeave}
+    >
+      {chars.map((ch, i) => (
+        <span
+          key={i}
+          onMouseEnter={() => onHover(i)}
+          onClick={() => onClick(i)}
+          style={{
+            fontSize: "clamp(1.8rem, 4.5vw, 3.2rem)",
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            display: "inline-block",
+            position: "relative",
+            color: ch.lit ? "#4ade80" : "#fff",
+            textShadow: ch.lit
+              ? "0 0 20px rgba(74,222,128,0.8), 0 0 60px rgba(74,222,128,0.4)"
+              : "0 0 30px rgba(74,222,128,0.15)",
+            transform: ch.lit
+              ? "translateY(-6px) scale(1.15)"
+              : "translateY(0) scale(1)",
+            transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+            animation: `fadeUp 1s cubic-bezier(0.16,1,0.3,1) ${0.4 + i * 0.03}s both`,
+          }}
+        >
+          {ch.c}
+          {ch.lit && (
+            <span
+              style={{
+                position: "absolute",
+                bottom: -4,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 4,
+                height: 4,
+                borderRadius: "50%",
+                background: "#4ade80",
+                boxShadow: "0 0 8px #4ade80",
+              }}
+            />
+          )}
+        </span>
+      ))}
+    </div>
   );
 };
 
