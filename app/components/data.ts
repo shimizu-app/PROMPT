@@ -45,6 +45,30 @@ export const CAT_QS: Record<string, Question[]> = {
   ],
 };
 
+export const PURPOSE_OPTIONS = [
+  "精度を上げたい",
+  "出力を具体的にしたい",
+  "フォーマットを整えたい",
+  "役割を明確にしたい",
+  "思考プロセスを改善したい",
+  "制約を追加したい",
+  "全体的に改善したい",
+];
+
+export interface DiagnosisResult {
+  ok: { point: string; reason: string }[];
+  missing: { point: string; suggestion: string }[];
+  unclear: { point: string; suggestion: string }[];
+  questions: { question: string; options: string[] }[];
+  summary: string;
+}
+
+export interface ImprovementResult {
+  improved: string;
+  changes: { location: string; before: string; after: string; reason: string }[];
+  problems: string[];
+}
+
 export const RULE_QS: RuleQuestion[] = [
   { id: "role", name: "役割設定", text: "AIにどんなキャラで答えてほしい？", options: ["専門家・プロフェッショナル", "メンター・先生", "同僚・パートナー", "批評家・厳しめ", "指定なし"] },
   { id: "constraint", name: "出力制約", text: "出力の形式は？", options: ["箇条書き", "文章（段落）", "表・比較形式", "コード", "Before / After", "指定なし"] },
