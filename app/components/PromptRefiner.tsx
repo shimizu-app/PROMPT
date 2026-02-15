@@ -22,41 +22,6 @@ interface SavedPrompt {
   generated_prompt: string;
 }
 
-const CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;600;700;800&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  ::-webkit-scrollbar { width: 5px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(74,222,128,0.2); border-radius: 10px; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-  @keyframes scaleIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-  @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
-  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
-  @keyframes pulse-ring { 0% { transform: scale(0.95); opacity: 0.6; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.6; } }
-  @keyframes glitch { 0%,100% { transform: translate(0); } 20% { transform: translate(-3px,2px); } 40% { transform: translate(3px,-2px); } 60% { transform: translate(-2px,-1px); } 80% { transform: translate(2px,1px); } }
-  @keyframes pageIn {
-    0% { opacity: 0; transform: scale(0.95) translateY(20px); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
-  }
-  @keyframes cardFlash {
-    0% { box-shadow: 0 0 0 rgba(74,222,128,0); }
-    40% { box-shadow: 0 0 30px rgba(74,222,128,0.1), inset 0 0 20px rgba(74,222,128,0.02); }
-    100% { box-shadow: 0 0 0 rgba(74,222,128,0); }
-  }
-  textarea:focus { border-color: rgba(74,222,128,0.5) !important; box-shadow: 0 0 0 3px rgba(74,222,128,0.08) !important; }
-  @media (max-width: 640px) {
-    .hero-modes { flex-direction: column !important; align-items: center !important; }
-    .hero-modes > button { width: 100% !important; max-width: 320px !important; min-width: 0 !important; padding: 22px 24px !important; }
-    .cat-grid { grid-template-columns: 1fr !important; }
-    .r-wrap { padding: 24px 14px !important; }
-    .r-card { padding: 24px 18px !important; }
-    .r-actions { flex-direction: column !important; }
-    .r-actions > button { width: 100% !important; justify-content: center !important; }
-  }
-`;
 
 const IconMap: Record<string, () => React.JSX.Element> = {
   fix: I.fix,
@@ -146,7 +111,6 @@ const Shell = ({
   exiting: boolean;
 }) => (
   <div style={s.page as CSSProperties}>
-    <style dangerouslySetInnerHTML={{ __html: CSS }} />
     <ParticleCanvas />
     <div
       style={
