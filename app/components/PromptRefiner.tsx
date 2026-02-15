@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ParticleCanvas, GlitchText } from "./ParticleCanvas";
 import { I } from "./Icons";
 import { GOAL_CATEGORIES, CAT_QS, RULE_QS } from "./data";
 import { s, optStyle, dotStyle } from "./styles";
 import type { CSSProperties } from "react";
+
+interface SavedPrompt {
+  id: string;
+  created_at: string;
+  mode: string;
+  category: string;
+  goal: string;
+  generated_prompt: string;
+}
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500;600;700;800&display=swap');
@@ -53,10 +62,61 @@ export default function PromptRefiner() {
   const [inputError, setInputError] = useState("");
   // Lifted from questions phase to avoid useState in conditional render
   const [sel, setSel] = useState<string | null>(null);
+  // Supabase: save & history
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [history, setHistory] = useState<SavedPrompt[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const go = (p: string) => {
     setAnim((a) => a + 1);
     setPhase(p);
+  };
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await fetch("/api/prompts");
+      const data = await res.json();
+      if (data.prompts) setHistory(data.prompts);
+    } catch { /* ignore */ }
+    setHistoryLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const savePrompt = async () => {
+    setSaving(true);
+    try {
+      const categoryLabel = GOAL_CATEGORIES.find((c) => c.id === category)?.label || "";
+      const res = await fetch("/api/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode,
+          category: categoryLabel,
+          goal: goalText,
+          original_prompt: promptText,
+          cat_answers: catAnswers,
+          rule_answers: ruleAnswers,
+          generated_prompt: editMode ? editText : generated,
+        }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        fetchHistory();
+      }
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const deletePrompt = async (id: string) => {
+    try {
+      await fetch(`/api/prompts/${id}`, { method: "DELETE" });
+      setHistory((h) => h.filter((p) => p.id !== id));
+    } catch { /* ignore */ }
   };
 
   const validateInput = () => {
@@ -200,6 +260,7 @@ export default function PromptRefiner() {
     setEditMode(false);
     setInputError("");
     setSel(null);
+    setSaved(false);
     go("hero");
   };
 
@@ -219,7 +280,7 @@ export default function PromptRefiner() {
         <ParticleCanvas />
         <div
           style={{
-            height: "100vh",
+            minHeight: "100vh",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
@@ -227,6 +288,7 @@ export default function PromptRefiner() {
             position: "relative",
             zIndex: 2,
             cursor: "crosshair",
+            padding: "48px 20px",
           }}
         >
           <div
@@ -388,6 +450,116 @@ export default function PromptRefiner() {
                 </button>
               ))}
             </div>
+            {/* History Section */}
+            {history.length > 0 && (
+              <div
+                style={{
+                  marginTop: 56,
+                  width: "100%",
+                  maxWidth: 600,
+                  animation: "fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s both",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 16,
+                    justifyContent: "center",
+                    color: "#6a6a80",
+                    fontSize: "0.82rem",
+                    fontWeight: 600,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase" as const,
+                  }}
+                >
+                  <I.history /> SAVED PROMPTS
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {history.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: "14px 18px",
+                        background: "rgba(255,255,255,0.02)",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        borderRadius: 10,
+                        cursor: "pointer",
+                        transition: "all 0.25s cubic-bezier(0.16,1,0.3,1)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(74,222,128,0.25)";
+                        e.currentTarget.style.background = "rgba(74,222,128,0.03)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                        e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                      }}
+                      onClick={() => {
+                        setGenerated(item.generated_prompt);
+                        setEditText(item.generated_prompt);
+                        setGoalText(item.goal);
+                        setMode(item.mode);
+                        setSaved(true);
+                        go("result");
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: "0.88rem",
+                            fontWeight: 500,
+                            color: "#d0d0e0",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {item.goal || "Untitled"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.72rem",
+                            color: "#4a4a60",
+                            marginTop: 4,
+                            display: "flex",
+                            gap: 10,
+                          }}
+                        >
+                          <span>{item.category}</span>
+                          <span>{new Date(item.created_at).toLocaleDateString("ja-JP")}</span>
+                        </div>
+                      </div>
+                      <button
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#4a4a60",
+                          cursor: "pointer",
+                          padding: 6,
+                          borderRadius: 6,
+                          transition: "color 0.2s",
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = "#f87171"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = "#4a4a60"; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deletePrompt(item.id);
+                        }}
+                      >
+                        <I.trash />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -928,6 +1100,17 @@ export default function PromptRefiner() {
                 <I.edit /> {editMode ? "プレビュー" : "編集"}
               </button>
               <button
+                style={{
+                  ...(s.ghost as CSSProperties),
+                  color: saved ? "#4ade80" : "#6a6a80",
+                  borderColor: saved ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.05)",
+                }}
+                onClick={savePrompt}
+                disabled={saving || saved}
+              >
+                {saved ? <><I.check /> 保存済み</> : saving ? "保存中..." : <><I.save /> DBに保存</>}
+              </button>
+              <button
                 style={s.ghost as CSSProperties}
                 onClick={reset}
               >
@@ -944,12 +1127,13 @@ export default function PromptRefiner() {
                     setGenerated(editText);
                     setEditMode(false);
                   } else {
+                    setSaved(false);
                     apiGenerate();
                   }
                 }}
               >
                 {editMode ? (
-                  "保存"
+                  "確定"
                 ) : (
                   <>
                     <I.refresh /> 再生成
