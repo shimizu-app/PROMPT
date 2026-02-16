@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, GeminiError } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,8 +27,14 @@ ${prompt}
     return NextResponse.json({ improvement: parsed });
   } catch (error) {
     console.error("Improve API error:", error);
+    if (error instanceof GeminiError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
     return NextResponse.json(
-      { error: "APIエラーが発生しました" },
+      { error: "APIエラーが発生しました。再度お試しください。" },
       { status: 500 }
     );
   }

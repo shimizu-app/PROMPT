@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, GeminiError } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ text });
   } catch (error) {
     console.error("Explain API error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (error instanceof GeminiError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
+    return NextResponse.json(
+      { error: "解説処理中にエラーが発生しました。再度お試しください。" },
+      { status: 500 }
+    );
   }
 }
