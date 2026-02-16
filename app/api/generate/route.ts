@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { callGemini } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY is not configured" },
-      { status: 500 }
-    );
-  }
-
   try {
     const body = await request.json();
     const { mode, category, goal, prompt, catAnswers, ruleAnswers } = body;
@@ -37,43 +30,16 @@ ${catAnswersStr}
 【ルール回答】
 ${ruleAnswersStr}`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 4000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
+    const text = await callGemini({
+      systemPrompt,
+      userMessage,
+      maxTokens: 4000,
     });
 
-    if (!res.ok) {
-      const errorData = await res.text();
-      return NextResponse.json(
-        { error: `Anthropic API error: ${res.status}`, details: errorData },
-        { status: res.status }
-      );
-    }
-
-    const data = await res.json();
-    const text =
-      data.content
-        ?.map((c: { type: string; text?: string }) =>
-          c.type === "text" ? c.text : ""
-        )
-        .join("\n") || "生成に失敗しました。";
-
-    return NextResponse.json({ text });
+    return NextResponse.json({ text: text || "生成に失敗しました。" });
   } catch (error) {
     console.error("Generate API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
