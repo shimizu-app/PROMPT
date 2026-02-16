@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 
 // DELETE /api/prompts/[id] - プロンプト削除
 export async function DELETE(
@@ -8,7 +8,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
 
-  const { error } = await supabase
+  const { error } = await getSupabase()
     .from("prompts")
     .delete()
     .eq("id", id);
