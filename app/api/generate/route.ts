@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, GeminiError } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +39,15 @@ ${ruleAnswersStr}`;
     return NextResponse.json({ text: text || "生成に失敗しました。" });
   } catch (error) {
     console.error("Generate API error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    if (error instanceof GeminiError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
+    return NextResponse.json(
+      { error: "生成中にエラーが発生しました。再度お試しください。" },
+      { status: 500 }
+    );
   }
 }

@@ -3,16 +3,21 @@ import { callGemini, GeminiError } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const { system, message, maxTokens } = await request.json();
+
+    if (!message) {
+      return NextResponse.json({ error: "message is required" }, { status: 400 });
+    }
 
     const text = await callGemini({
-      userMessage: `以下から、やりたいことを3-5行で要約。「あなたがやりたいのは〜ですね？」形式で。複雑なら分割提案も。\n${JSON.stringify(body)}`,
-      maxTokens: 1000,
+      systemPrompt: system || undefined,
+      userMessage: message,
+      maxTokens: maxTokens || 2000,
     });
 
     return NextResponse.json({ text });
   } catch (error) {
-    console.error("Confirm API error:", error);
+    console.error("Chat API error:", error);
     if (error instanceof GeminiError) {
       return NextResponse.json(
         { error: error.userMessage },
@@ -20,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { error: "確認処理中にエラーが発生しました。再度お試しください。" },
+      { error: "AI処理中にエラーが発生しました。再度お試しください。" },
       { status: 500 }
     );
   }

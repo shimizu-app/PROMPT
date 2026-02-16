@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini } from "@/lib/gemini";
+import { callGemini, GeminiError } from "@/lib/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +21,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ diagnosis: parsed });
   } catch (error) {
     console.error("Diagnose API error:", error);
+    if (error instanceof GeminiError) {
+      return NextResponse.json(
+        { error: error.userMessage },
+        { status: error.status }
+      );
+    }
     return NextResponse.json(
       {
         diagnosis: {
