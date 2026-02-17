@@ -194,21 +194,33 @@ export default function App(){
   const visionContext=()=>{if(!visionResult||visionPicks.length===0)return"";return"\n【参考画像から取り入れたい要素】\n"+visionPicks.map(i=>{const el=visionResult.elements[i];return`- ${el.category}: ${el.description}（${el.detail}）`;}).join("\n");};
   const codeContext=()=>{if(!codeInput.trim())return"";return"\n【添付コード】\n```\n"+codeInput.trim().substring(0,3000)+"\n```";};
   // Easy mode questions
-  const apiEasyQ=async()=>{if(!ok(goal))return;setLoading(true);go("easyQ");const c=getCat();const a=getApp();try{const txt=await callAPI(`あなたはAI活用アシスタントです。ユーザーの目的に合わせて質問を生成。
-【絶対ルール】必ず6問以上の質問を生成すること。6問未満は不合格。上限なし、必要なだけ質問する。
+  const apiEasyQ=async()=>{if(!ok(goal))return;setLoading(true);go("easyQ");const c=getCat();const a=getApp();try{const txt=await callAPI(`あなたはAI活用アシスタントです。ユーザーの目的に合わせて、高品質なプロンプトを作るための質問を生成します。
+【絶対ルール】必ず8問以上の質問を生成すること。8問未満は不合格。上限なし、必要なだけ質問する。
 【必須質問】以下は必ず含める：${c?.must.join("、")}
 【対象アプリ】${a?.name||c?.label}${(a as any)?.params?" ※このアプリ特有のパラメータがあれば考慮":""}
-【質問スタイル】専門用語は使わない。感覚で答えられるやさしい聞き方。選択肢は短く簡潔に（絵文字は使わない）。
+【質問の精度を上げるルール】
+1. 曖昧な質問禁止。「どんな感じ？」ではなく「背景の色はどれが近い？」のように具体的に聞く
+2. 各質問は1つの情報だけを聞く。複数のことを1つの質問に混ぜない
+3. 選択肢は具体的で実用的に。「いい感じ」「普通」のような曖昧な選択肢は禁止
+4. 質問の順番は重要：まず全体像→詳細→スタイル→制約の順で聞く
+5. 専門用語は使わない。感覚で答えられるやさしい聞き方にする
+6. 絵文字は使わない
 【形式】type:"select"=選択肢3-5個、type:"text"=自由入力。JSON配列のみ返答。
-[{"question":"質問","type":"select","options":["A","B","C"]}]`,`AIアプリ：${appLabel()}\nやりたいこと：${goal}${codeContext()}`);let qs=JSON.parse(txt.replace(/```json|```/g,"").trim());if(!Array.isArray(qs))qs=[];const existing=qs.map((q: any)=>q.question);while(qs.length<6){const bq=BACKUP_Q_EASY.find(b=>!existing.includes(b.question));if(!bq)break;qs.push(bq);existing.push(bq.question);}setAiQ(qs);setAiIdx(0);setAiAns({});}catch{setAiQ(BACKUP_Q_EASY.slice(0,6));setAiIdx(0);setAiAns({});}setLoading(false);};
+[{"question":"質問","type":"select","options":["A","B","C"]}]`,`AIアプリ：${appLabel()}\nやりたいこと：${goal}${codeContext()}`);let qs=JSON.parse(txt.replace(/```json|```/g,"").trim());if(!Array.isArray(qs))qs=[];const existing=qs.map((q: any)=>q.question);while(qs.length<8){const bq=BACKUP_Q_EASY.find(b=>!existing.includes(b.question));if(!bq)break;qs.push(bq);existing.push(bq.question);}setAiQ(qs);setAiIdx(0);setAiAns({});}catch{setAiQ(BACKUP_Q_EASY.slice(0,8));setAiIdx(0);setAiAns({});}setLoading(false);};
   // Pro mode questions
-  const apiProQ=async()=>{if(!ok(goal))return;setLoading(true);go("proQ");const c=getCat();const a=getApp();try{const txt=await callAPI(`プロンプトエンジニアリング専門家。14ルール順で質問生成。
-【絶対ルール】必ず6問以上の質問を生成すること。6問未満は不合格。上限なし、精度に必要なだけ質問する。
-【順番】${RULES_LABEL.join("→")}
+  const apiProQ=async()=>{if(!ok(goal))return;setLoading(true);go("proQ");const c=getCat();const a=getApp();try{const txt=await callAPI(`プロンプトエンジニアリング専門家。14ルールに基づいて質問を生成。
+【絶対ルール】必ず8問以上の質問を生成すること。8問未満は不合格。上限なし、精度に必要なだけ質問する。
+【14ルール順】${RULES_LABEL.join("→")}
 【必須質問】以下は必ず含める：${c?.must.join("、")}
 【対象アプリ】${a?.name||c?.label}${(a as any)?.params?" ※このアプリ特有のパラメータ構文を考慮":""}
+【質問の精度を上げるルール】
+1. 各ルールに対して1-2問ずつ生成。不要なルールのみスキップ可
+2. 各質問は1つの情報だけを聞く。複数のことを1つの質問に混ぜない
+3. 選択肢は専門的かつ具体的に。曖昧な選択肢は禁止
+4. ruleフィールドに対応する14ルール名を必ず記載
+5. 質問順は14ルールの順番に従う
 【形式】type:"select"=選択肢3-5個、type:"text"=自由入力。JSON配列のみ返答。
-[{"rule":"ルール名","question":"質問","type":"select","options":["A","B","C"]}]`,`ジャンル：${appLabel()}\n目的：${goal}${codeContext()}`);let qs=JSON.parse(txt.replace(/```json|```/g,"").trim());if(!Array.isArray(qs))qs=[];const existing=qs.map((q: any)=>q.question);while(qs.length<6){const bq=BACKUP_Q_PRO.find(b=>!existing.includes(b.question));if(!bq)break;qs.push(bq);existing.push(bq.question);}setAiQ(qs);setAiIdx(0);setAiAns({});}catch{setAiQ(BACKUP_Q_PRO.slice(0,6));setAiIdx(0);setAiAns({});}setLoading(false);};
+[{"rule":"ルール名","question":"質問","type":"select","options":["A","B","C"]}]`,`ジャンル：${appLabel()}\n目的：${goal}${codeContext()}`);let qs=JSON.parse(txt.replace(/```json|```/g,"").trim());if(!Array.isArray(qs))qs=[];const existing=qs.map((q: any)=>q.question);while(qs.length<8){const bq=BACKUP_Q_PRO.find(b=>!existing.includes(b.question));if(!bq)break;qs.push(bq);existing.push(bq.question);}setAiQ(qs);setAiIdx(0);setAiAns({});}catch{setAiQ(BACKUP_Q_PRO.slice(0,8));setAiIdx(0);setAiAns({});}setLoading(false);};
   const apiGenSummary=async()=>{setLoading(true);go("genConfirm");const vc=visionContext();try{setGenSummary(await callAPI(`回答をもとに「つまり、あなたがやりたいのは〜ということですね？」形式で5-8行要約。具体的に。専門用語は避けて。`,`AIアプリ：${appLabel()}\n目的：${goal}${vc}\n回答：\n${Object.entries(aiAns).map(([k,v])=>`${k}: ${v}`).join("\n")}`));}catch{setGenSummary(`やりたいのは「${goal}」ですね？`);}setLoading(false);};
   const apiGenerate=async()=>{setLoading(true);go("result");const a=getApp();const vc=visionContext();try{const txt=await callAPI(`プロンプトエンジニアリング最高専門家。14ルール完全準拠で最高品質の指示文を生成。${a?.name||"選んだAIアプリ"}に最適化した形式で出力。${(a as any)?.params?"このアプリ特有のパラメータ構文も含める。":""}全回答反映。マークダウン出力。${feedback?`\nユーザー修正：${feedback}`:""}`,`【AIアプリ】${appLabel()}\n【目的】${goal}${vc}\n【回答】\n${Object.entries(aiAns).map(([k,v])=>`${k}: ${v}`).join("\n")}`,4000);setResult(txt);setEditBuf(txt);setImprov(null);}catch{setResult("エラーが発生しました。もう一度お試しください。");}setLoading(false);};
   const runDiag=async(text: string)=>{setLoading(true);go("diagResult");try{const txt=await callAPI(`プロンプト診断AI。14ルール診断。JSONのみ。\n{"ok":[{"point":"良い点","reason":"理由"}],"missing":[{"point":"足りない","suggestion":"追加すべき"}],"unclear":[{"point":"曖昧","suggestion":"明確にすべき"}],"questions":[{"question":"補完質問","options":["A","B","C"]}],"summary":"総評"}\nquestions最大5問。`,text);setDiag(JSON.parse(txt.replace(/```json|```/g,"").trim()));}catch{setDiag({ok:[],missing:[],unclear:[],questions:[],summary:"診断失敗。"});}setLoading(false);};
