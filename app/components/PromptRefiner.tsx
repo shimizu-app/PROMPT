@@ -171,18 +171,15 @@ export default function App(){
   const getCat=()=>AI_CATS.find(c=>c.id===aiCat);
   const getApp=()=>{const c=getCat();return c?.apps?.find(a=>a.id===specificApp);};
   const appLabel=()=>{const a=getApp();const c=getCat();return a?`${a.name}（${c?.label}）`:c?.label||"";};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const callAPI=async(system: string|null,userMsg: string,maxTok=2000)=>{const body: any={model:"claude-sonnet-4-20250514",max_tokens:maxTok,messages:[{role:"user",content:typeof userMsg==="string"?userMsg:userMsg}]};if(system)body.system=system;const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!res.ok){const err=await res.text();console.error("API error:",res.status,err);throw new Error("API "+res.status);}const data=await res.json();if(data.error)throw new Error(data.error.message||"API error");return data.content?.map((c: any)=>(c.type==="text"?c.text:"")).join("\n")||"";};
+  const callAPI=async(system: string|null,userMsg: string,maxTok=2000)=>{const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({system:system||undefined,message:userMsg,maxTokens:maxTok})});if(!res.ok){const err=await res.text();console.error("API error:",res.status,err);throw new Error("API "+res.status);}const data=await res.json();if(data.error)throw new Error(data.error);return data.text||"";};
   // Vision analysis
   const apiVision=async()=>{setLoading(true);go("visionResult");try{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content: any[]=[];
-    if(refImg){content.push({type:"image",source:{type:"base64",media_type:"image/png",data:refImg.split(",")[1]}});}
-    content.push({type:"text",text:`この画像/参考を分析して、デザイン要素を抽出してください。JSONのみ返答。\n{"elements":[{"category":"色合い","description":"ダーク背景×ブルーアクセント","detail":"#0a0a0f背景、#3b82f6アクセント"},{"category":"レイアウト","description":"カード型、余白多め","detail":"グリッド配置、padding 24px"},{"category":"雰囲気","description":"モダン・洗練","detail":"ミニマリスト、テック寄り"},{"category":"フォント感","description":"細め・現代的","detail":"Sans-serif、ウェイト300-500"},{"category":"装飾","description":"グラデーション、微光彩","detail":"線形グラデ、box-shadow"}]}\n要素は3〜6個。実際の画像内容に即して。${refUrl?`\n参考URL: ${refUrl}`:""}`});
-    const body={model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content}]};
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data=await res.json();const txt=data.content?.map((c: any)=>c.type==="text"?c.text:"").join("")||"";
+    const imageData=refImg?refImg.split(",")[1]:undefined;
+    const visionPrompt=`この画像/参考を分析して、デザイン要素を抽出してください。JSONのみ返答。\n{"elements":[{"category":"色合い","description":"ダーク背景×ブルーアクセント","detail":"#0a0a0f背景、#3b82f6アクセント"},{"category":"レイアウト","description":"カード型、余白多め","detail":"グリッド配置、padding 24px"},{"category":"雰囲気","description":"モダン・洗練","detail":"ミニマリスト、テック寄り"},{"category":"フォント感","description":"細め・現代的","detail":"Sans-serif、ウェイト300-500"},{"category":"装飾","description":"グラデーション、微光彩","detail":"線形グラデ、box-shadow"}]}\n要素は3〜6個。実際の画像内容に即して。${refUrl?`\n参考URL: ${refUrl}`:""}`;
+    const res=await fetch("/api/vision",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:imageData,prompt:visionPrompt,maxTokens:1500})});
+    if(!res.ok)throw new Error("Vision API "+res.status);
+    const data=await res.json();if(data.error)throw new Error(data.error);
+    const txt=data.text||"";
     const parsed=JSON.parse(txt.replace(/```json|```/g,"").trim());
     if(parsed.elements?.length>0){setVisionResult(parsed);}else{throw new Error("empty");}
   }catch(e){
