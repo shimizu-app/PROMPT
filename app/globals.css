@@ -76,6 +76,7 @@ textarea:focus {
 @media (max-width: 640px) {
   .hero-modes { flex-direction: column !important; align-items: center !important; }
   .hero-modes > button { width: 100% !important; max-width: 320px !important; min-width: 0 !important; padding: 22px 24px !important; }
+  .wave-area { height: 160px !important; width: 95vw !important; margin-bottom: 24px !important; }
   .cat-grid { grid-template-columns: 1fr !important; }
   .r-wrap { padding: 24px 14px !important; }
   .r-card { padding: 24px 18px !important; }
